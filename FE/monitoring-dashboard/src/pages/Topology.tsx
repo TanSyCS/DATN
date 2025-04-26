@@ -146,7 +146,7 @@ const Topology: React.FC = () => {
           {/* Đổi màu edge thành đen */}
         </defs>
         {/* Vẽ links (mỗi cặp switch 1 đường) */}
-        {links.map((link, i) => {
+        {links.map((link) => {
           const src = nodeMap[link.src];
           const dst = nodeMap[link.dst];
           if (!src || !dst) return null;
@@ -155,7 +155,6 @@ const Topology: React.FC = () => {
           const x2 = dst.x + NODE_WIDTH / 2;
           const y2 = dst.y + NODE_HEIGHT / 2;
           // Vị trí mũi tên SVG, dịch ra xa node đích
-          const arrowLen = 32;
           const arrowOffset = 120; // dịch ra xa hơn nữa
           const angle = getArrowAngle(x1, y1, x2, y2);
           const ax = x2 - (arrowOffset / 2) * Math.cos((angle * Math.PI) / 180);
@@ -226,8 +225,8 @@ const Topology: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {portDetailMap[n.id]?.length > 0 ? (
-                        portDetailMap[n.id].map((p: any, idx: number) => (
+                      {((portDetailMap as Record<string, { port: string; fromSwitch: string; fromPort: string; allow?: boolean; deny?: boolean }[]>)[n.id]?.length ?? 0) > 0 ? (
+                        (portDetailMap as Record<string, { port: string; fromSwitch: string; fromPort: string; allow?: boolean; deny?: boolean }[]>)[n.id].map((p, idx) => (
                           <tr key={idx}>
                             <td className="font-semibold text-blue-700">{p.port}</td>
                             <td>Switch <span className="font-semibold text-blue-700">{p.fromSwitch}</span> port <span className="font-semibold text-blue-700">{p.fromPort}</span></td>
