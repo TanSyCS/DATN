@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useNavigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import switchDataRaw from '../../data-swtich.txt?raw';
 
 const COLORS = ['#2563eb', '#059669', '#f59e42', '#ef4444', '#a21caf'];
@@ -14,14 +13,11 @@ const parseSwitchData = () => {
 };
 
 const SwitchDetail = () => {
-  // Giả lập lấy id từ url, thực tế sẽ lấy từ useParams
-  // const { id } = useParams();
-  const navigate = useNavigate ? useNavigate() : () => {};
+  const navigate = useNavigate();
   const data = parseSwitchData();
   if (!data) return <div className="p-8 text-red-600">Không có dữ liệu switch.</div>;
   const stats = data['opendaylight-port-statistics:flow-capable-node-connector-statistics'];
 
-  // Chuẩn hóa dữ liệu cho biểu đồ
   const bytesData = [
     { name: 'Received', value: Number(stats.bytes.received) },
     { name: 'Transmitted', value: Number(stats.bytes.transmitted) },
@@ -30,7 +26,6 @@ const SwitchDetail = () => {
     { name: 'Received', value: Number(stats.packets.received) },
     { name: 'Transmitted', value: Number(stats.packets.transmitted) },
   ];
-  // Gom tất cả error và drop vào một mảng cho histogram
   const errorDropData = [
     { name: 'CRC Error', value: Number(stats['receive-crc-error']) },
     { name: 'Frame Error', value: Number(stats['receive-frame-error']) },
@@ -73,7 +68,6 @@ const SwitchDetail = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        {/* Bỏ Pie chart error và drops, chỉ giữ lại histogram */}
         <div className="md:col-span-2">
           <div className="font-semibold mt-4 mb-2">Error & Drop Histogram</div>
           <ResponsiveContainer width="100%" height={220}>
@@ -82,7 +76,7 @@ const SwitchDetail = () => {
               <YAxis allowDecimals={false} />
               <Tooltip />
               <Bar dataKey="value">
-                {errorDropData.map((entry, idx) => (
+                {errorDropData.map((_, idx) => (
                   <Cell key={`bar-cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                 ))}
               </Bar>
