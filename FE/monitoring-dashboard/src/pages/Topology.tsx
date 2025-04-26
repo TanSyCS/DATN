@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import topoDataRaw from '../../data.txt?raw';
+import { useNavigate } from 'react-router-dom';
 
 const NODE_WIDTH = 80;
 const NODE_HEIGHT = 80;
@@ -74,12 +75,69 @@ interface NodeType {
   color: string;
 }
 
+// SidebarSwitchInfo component
+const SidebarSwitchInfo: React.FC<{
+  nodes: NodeType[];
+  portDetailMap: Record<string, { port: string; fromSwitch: string; fromPort: string; allow?: boolean; deny?: boolean }[]>;
+  selectedSwitch: string | null;
+  onSelect: (id: string) => void;
+  open: boolean;
+  onClose: () => void;
+}> = ({ nodes, portDetailMap, selectedSwitch, onSelect, open, onClose }) => (
+  <aside
+    className={`fixed top-0 right-0 h-full w-80 bg-white shadow-lg border-l border-blue-200 z-40 transform transition-transform duration-300
+      ${open ? 'translate-x-0' : 'translate-x-full'}`}
+    style={{ minWidth: 320 }}
+  >
+    <div className="flex items-center justify-between px-4 py-3 border-b border-blue-100">
+      <span className="font-bold text-lg text-blue-700">Switch Info</span>
+      <button
+        className="text-gray-500 hover:text-blue-600 p-1 rounded focus:outline-none"
+        aria-label="Close sidebar"
+        onClick={onClose}
+      >
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div className="overflow-y-auto h-[calc(100%-56px)] p-4 space-y-4">
+      {nodes.map((n) => (
+        <div
+          key={n.id}
+          className={`rounded-lg border p-3 shadow-sm cursor-pointer transition-all
+            ${selectedSwitch === n.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:bg-blue-50'}`}
+          onClick={() => onSelect(n.id)}
+          tabIndex={0}
+          aria-label={`Switch ${n.label}`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <img src={SWITCH_IMG} alt="Switch" className="w-7 h-7" />
+            <span className="font-semibold text-blue-700">{n.label}</span>
+          </div>
+          <div className="text-xs text-gray-500 mb-1">ID: {n.id}</div>
+          <div className="text-xs text-gray-500 mb-1">Ports: {(portDetailMap as Record<string, any[]>)[n.id]?.length ?? 0}</div>
+          <div className="text-xs text-gray-700 font-medium mb-1">Port List:</div>
+          <ul className="text-xs text-gray-600 ml-2 list-disc">
+            {(portDetailMap as Record<string, { port: string; fromSwitch: string; fromPort: string }[]>)[n.id]?.map((p, idx) => (
+              <li key={idx}>
+                Port <span className="font-semibold text-blue-700">{p.port}</span> ← Switch {p.fromSwitch} port {p.fromPort}
+              </li>
+            ))}
+            {((portDetailMap as Record<string, any[]>)[n.id]?.length ?? 0) === 0 && <li className="text-gray-400">No ports</li>}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </aside>
+);
+
 const Topology: React.FC = () => {
   const { links, portDetailMap } = useMemo(parseTopology, []);
   const [nodes, setNodes] = useState<NodeType[]>(() => parseTopology().nodes);
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const [selectedSwitch, setSelectedSwitch] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
+  const navigate = useNavigate();
 
   // Tạo map nodeId -> node để lấy vị trí
   const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
@@ -130,8 +188,24 @@ const Topology: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-[100vh] bg-gray-100 rounded-lg shadow p-0 flex flex-col items-center">
+    <div className="w-full min-h-[100vh] bg-gray-100 rounded-lg shadow p-0 flex flex-col items-center relative">
       <h2 className="text-2xl font-bold mb-4">Network Topology (SVG)</h2>
+      <button
+        className="fixed top-5 right-5 z-50 bg-blue-600 text-white px-3 py-1.5 rounded shadow hover:bg-blue-700 focus:outline-none"
+        onClick={() => setSidebarOpen(true)}
+        style={{ display: sidebarOpen ? 'none' : 'block' }}
+        aria-label="Open sidebar"
+      >
+        Switch Info
+      </button>
+      <SidebarSwitchInfo
+        nodes={nodes}
+        portDetailMap={portDetailMap}
+        selectedSwitch={selectedSwitch}
+        onSelect={(id) => navigate(`/switch/${id}`)}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <svg
         ref={svgRef}
         width={SVG_WIDTH}
@@ -166,7 +240,7 @@ const Topology: React.FC = () => {
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="#222"
+                stroke={selectedSwitch === link.src || selectedSwitch === link.dst ? '#2563eb' : '#222'}
                 strokeWidth={4}
                 style={{ filter: 'drop-shadow(0px 2px 2px #2228)' }}
               />
@@ -191,7 +265,7 @@ const Topology: React.FC = () => {
               y={n.y}
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
-              style={{ filter: 'drop-shadow(0px 2px 2px #60a5fa88)' }}
+              style={{ filter: 'drop-shadow(0px 2px 2px #60a5fa88)', outline: selectedSwitch === n.id ? '3px solid #2563eb' : 'none' }}
             />
             <text
               x={n.x + NODE_WIDTH / 2}
